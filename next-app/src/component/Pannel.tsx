@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, use } from "react";
 import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
@@ -13,26 +13,31 @@ const initializeSocket = () => {
 };
 
 type Message = {
-  text: string
-  sender: "me" | "other"
-}
+  text: string;
+  sender: "me" | "other";
+};
 
 export default function Pannel() {
   const [messages, setMessages] = useState<Message[]>([
     { text: "Hello!", sender: "other" },
     { text: "Hey there!", sender: "me" },
-  ])
-  const [inputMessage, setInputMessage] = useState("")
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  ]);
+  const [inputMessage, setInputMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-useEffect(() => {
+  const word = "Hello World";
+  
+
+  useEffect(() => {
     const socket = initializeSocket();
-
-    
 
     socket.on("chat", (data) => {
       console.log("Received stroke:", data);
       setMessages((prev) => [...prev, data]);
+    });
+
+    socket.on("score", (data) => {
+      console.log("Received score:", data);
     });
 
     return () => {
@@ -42,15 +47,38 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    const socket = initializeSocket();
+
+    const score = {
+      name : socket.id,
+      score: 10
+    }
+    if(messages[messages.length - 1].text === word) {
+      
+      socket.emit("score", score);
+
+    }
+
+  
+
+    return () => {
+      socket.off("score");
+    };
+  }, [messages]);
 
   const handleSendMessage = () => {
-    if (!inputMessage.trim()) return
-    setMessages((prev) => [...prev, { text: inputMessage.trim(), sender: "me" }])
-    socket?.emit("chat", { text: inputMessage.trim(), sender: "other" })
-    setInputMessage("")
-  }
+    if (!inputMessage.trim()) return;
+    setMessages((prev) => [
+      ...prev,
+      { text: inputMessage.trim(), sender: "me" },
+    ]);
+    socket?.emit("chat", { text: inputMessage.trim(), sender: "other" });
+    setInputMessage("");
+  };
 
   return (
     <div className="fixed right-0 bottom-0 h-screen w-[30%] min-w-[300px] bg-gradient-to-b from-gray-900 to-gray-800 shadow-2xl border-l border-gray-700 flex flex-col">
@@ -75,8 +103,8 @@ useEffect(() => {
       <div className="p-4 bg-gray-800 border-t border-gray-700">
         <form
           onSubmit={(e) => {
-            e.preventDefault()
-            handleSendMessage()
+            e.preventDefault();
+            handleSendMessage();
           }}
           className="flex items-center space-x-3"
         >
@@ -97,5 +125,5 @@ useEffect(() => {
         </form>
       </div>
     </div>
-  )
+  );
 }
